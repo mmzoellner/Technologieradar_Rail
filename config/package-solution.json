@@ -1,0 +1,40 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/package-solution.schema.json",
+  "solution": {
+    "name": "Technologieradar Rail",
+    "id": "2b8cf348-cfe8-4a6c-b1ee-b7f0838c438a",
+    "version": "1.0.0.0",
+    "includeClientSideAssets": true,
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "developer": {
+      "name": "pwd2009",
+      "websiteUrl": "https://github.com/pwd2009/technologieradar",
+      "privacyUrl": "",
+      "termsOfUseUrl": "",
+      "mpnId": "Undefined-1.23.2"
+    },
+    "metadata": {
+      "shortDescription": {
+        "default": "Technologieradar Rail"
+      },
+      "longDescription": {
+        "default": "Gemeinsame Technologieverwaltung mit 20 Bewertungsstufen, Zielen, Projekten und Kategorieclustern."
+      },
+      "screenshotPaths": [],
+      "videoUrl": "",
+      "categories": []
+    },
+    "features": [
+      {
+        "title": "technologieradar-rail Feature",
+        "description": "The feature that activates elements of the technologieradar-rail solution.",
+        "id": "9787f3ef-3922-49c9-8e21-92747d93307a",
+        "version": "1.0.0.0"
+      }
+    ]
+  },
+  "paths": {
+    "zippedPackage": "solution/technologieradar-rail.sppkg"
+  }
+}

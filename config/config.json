@@ -1,0 +1,18 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/config.2.0.schema.json",
+  "version": "2.0",
+  "bundles": {
+    "rail-radar-web-part": {
+      "components": [
+        {
+          "entrypoint": "./lib/webparts/railRadar/RailRadarWebPart.js",
+          "manifest": "./src/webparts/railRadar/RailRadarWebPart.manifest.json"
+        }
+      ]
+    }
+  },
+  "externals": {},
+  "localizedResources": {
+    "RailRadarWebPartStrings": "lib/webparts/railRadar/loc/{locale}.js"
+  }
+}

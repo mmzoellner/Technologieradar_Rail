@@ -1,0 +1,39 @@
+export interface Technology {
+ Id: string; Name: string; Category: string; Description: string; Owner: string;
+ Stage: number; Target: number | null; Reason: string; Goal: string; Due: string;
+ Date: string; Archived: boolean; History: string[]; ProfileUrl: string; Project: string;
+}
+export interface Entry { data: Technology; itemId: number; etag: string; }
+export interface Store {
+ load(): Promise<Entry[]>; setup(): Promise<void>; save(data: Technology, previous?: Entry): Promise<void>;
+}
+export const names = ['Aus Radar entfernen','Standardisieren','Optimieren','Ausweiten','Integrieren','Bereitstellen','Validieren','Iterieren','Bewerten','Pilot','Prototyp','Empfehlen','Benchmark','Analysieren','Erkunden','Identifizieren','Zurückhalten','Zweifel','Hinterfragen','Beobachten','Entdecken'];
+export const definitions = ['Im Radar ausblenden; Datensatz und Verlauf bleiben erhalten.','Als Standard in der Organisation etablieren.','Kontinuierliche Verbesserung und Feinjustierung.','Nutzung auf weitere Produkte oder Prozesse ausweiten.','Mit bestehenden Systemen, Prozessen und Strukturen verbinden.','In einem realen, begrenzten Einsatz bereitstellen.','Abschließend prüfen, ob die Anforderungen erfüllt sind.','Auf Grundlage der Testergebnisse verbessern.','Ergebnisse aus Tests und Nutzerfeedback auswerten.','In einem begrenzten realen Anwendungsfall testen.','Ersten Prototyp zum Testen der Grundlagen erstellen.','Über die Überführung in die nächste Stufe entscheiden.','Mit bestehenden Lösungen oder Alternativen vergleichen.','Nutzen, Kosten und Risiken systematisch bewerten.','Durch Recherche und Diskussionen tiefer verstehen.','Technologie definieren und mögliche Anwendungsfälle sammeln.','Vorerst ausschließen, aber weiter beobachten.','Aufgrund potenzieller Risiken oder Unklarheiten hinterfragen.','Sinn und Relevanz kritisch hinterfragen.','Erste oberflächliche Beobachtungen und Verfolgen.','Erstmals wahrgenommen; noch keine weitere Bearbeitung.'];
+export const group = (s: number): string => s === 0 ? 'Ausgeblendet' : s <= 5 ? 'Adopt' : s <= 10 ? 'Trial' : s <= 15 ? 'Assess' : 'Hold';
+export const fill = (s: number): string => s<=5?'#c0e2d7':s<=10?'#f0e5bf':s<=15?'#f6d9c7':'#e3cec6';
+export const ink = (s: number): string => s<=5?'#15836a':s<=10?'#9d7800':s<=15?'#c85d24':'#88432c';
+export const escape = (v: unknown): string => String((v === null || v === undefined) ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c] as string));
+export function validLink(s: string): boolean { if(!s) return true; try {const u=new URL(s);return (u.protocol==='https:'||u.protocol==='http:')&&!u.username&&!u.password;}catch{return false;} }
+export function radius(s: number, r: number): number {if(!Number.isInteger(s)||s<1||s>20)throw new Error('Ungültige Radarstufe');return r*(s-1)/19;}
+export function blank(): Technology {return {Id:crypto.randomUUID(),Name:'',Category:'',Description:'',Owner:'',Stage:20,Target:null,Reason:'',Goal:'',Due:'',Date:new Date().toLocaleDateString('sv-SE'),Archived:false,History:[],ProfileUrl:'',Project:''};}
+function dateOk(s: string): boolean {return /^\d{4}-\d{2}-\d{2}$/.test(s)&&!Number.isNaN(Date.parse(s))&&new Date(s).toISOString().slice(0,10)===s;}
+export function validate(raw: unknown): Technology {
+ if(!raw||typeof raw!=='object')throw new Error('Ungültiger Technologieeintrag.');
+ const t=raw as Technology;
+ for(const k of ['Id','Name','Category','Reason','Date'] as const)if(typeof t[k]!=='string'||!t[k].trim())throw new Error('Pflichtfeld fehlt: '+k);
+ if(!Number.isInteger(t.Stage)||t.Stage<0||t.Stage>20||t.Target!==null&&t.Target!==undefined&&(!Number.isInteger(t.Target)||t.Target<0||t.Target>20))throw new Error('Bewertungsstufen müssen ganzzahlig zwischen 0 und 20 liegen.');
+ const result: Technology={...t};
+ for(const k of ['Description','Owner','Goal','Due','ProfileUrl','Project'] as const){if(t[k]!==null&&t[k]!==undefined&&typeof t[k]!=='string')throw new Error('Ungültiges Textfeld: '+k);result[k]=t[k]||'';}
+ result.Target=(t.Target===null||t.Target===undefined)?null:t.Target;result.Archived=t.Archived===true;
+ if(t.Archived!==null&&t.Archived!==undefined&&typeof t.Archived!=='boolean')throw new Error('Ungültiger Archivstatus.');
+ result.History=t.History||[];if(!Array.isArray(result.History)||result.History.some(h=>typeof h!=='string'))throw new Error('Ungültiger Verlauf.');
+ if(result.Target!==null&&!result.Goal.trim())throw new Error('Ein Ziel benötigt eine Zielbeschreibung.');
+ if(!dateOk(result.Date)||(result.Due&&!dateOk(result.Due)))throw new Error('Ungültiges Datum.');
+ if(!validLink(result.ProfileUrl))throw new Error('Steckbrief-Link muss eine HTTP- oder HTTPS-Adresse ohne Zugangsdaten sein.');
+ if(result.Name.length>255||result.Category.length>255||result.Id.length>255)throw new Error('Name, Kategorie und ID dürfen höchstens 255 Zeichen enthalten.');
+ if(JSON.stringify(result).length>60000)throw new Error('Der Eintrag einschließlich Verlauf ist zu groß (maximal 60.000 Zeichen).');
+ return result;
+}
+export function parseBackup(raw: string): Technology[] {const list:unknown=JSON.parse(raw);if(!Array.isArray(list)||list.length>1000)throw new Error('Eine Sicherung muss eine Liste mit höchstens 1.000 Technologien enthalten.');const ids=new Set<string>();return list.map(x=>{const t=validate(x);if(ids.has(t.Id))throw new Error('Doppelte Technologie-ID in der Sicherung.');ids.add(t.Id);return t;});}
+export function tooltip(t: Technology,target: boolean): string {const v=(s:string):string=>s||'Nicht angegeben';return t.Name+(target?' — Ziel\n\nProjekt: '+v(t.Project)+'\nVerantwortlich: '+v(t.Owner):' — Iststand\n\nBegründung: '+v(t.Reason))+'\n\nBeschreibung: '+v(t.Description);}
+

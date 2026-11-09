@@ -1,0 +1,33 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx/client-side-web-part-manifest.schema.json",
+  "id": "baa07e41-ffbb-4e8a-aa72-75a0d95ff025",
+  "alias": "RailRadarWebPart",
+  "componentType": "WebPart",
+  "version": "*",
+  "manifestVersion": 2,
+  "requiresCustomScript": false,
+  "supportedHosts": [
+    "SharePointWebPart"
+  ],
+  "supportsFullBleed": true,
+  "preconfiguredEntries": [
+    {
+      "groupId": "5c03119e-3074-46fd-976b-c60198311f70",
+      "group": {
+        "default": "Advanced"
+      },
+      "title": {
+        "default": "Technologieradar Rail",
+        "de-de": "Technologieradar Rail"
+      },
+      "description": {
+        "default": "Technologien bewerten, Ziele planen und gemeinsam verwalten."
+      },
+      "officeFabricIconFontName": "Radar",
+      "properties": {
+        "listName": "Technologieradar Rail",
+        "readonlyMode": false
+      }
+    }
+  ]
+}

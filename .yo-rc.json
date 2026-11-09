@@ -1,0 +1,23 @@
+{
+  "@microsoft/generator-sharepoint": {
+    "whichFolder": "subdir",
+    "solutionName": "technologieradar-rail",
+    "environment": "spo",
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "useGulp": false,
+    "componentType": "webpart",
+    "template": "none",
+    "componentName": "RailRadar",
+    "componentDescription": "Technologieradar Rail",
+    "plusBeta": false,
+    "isCreatingSolution": true,
+    "nodeVersion": "22.23.3",
+    "sdksVersions": {},
+    "version": "1.23.2",
+    "libraryName": "technologieradar-rail",
+    "libraryId": "2b8cf348-cfe8-4a6c-b1ee-b7f0838c438a",
+    "packageManager": "npm",
+    "solutionShortDescription": "technologieradar-rail description"
+  }
+}

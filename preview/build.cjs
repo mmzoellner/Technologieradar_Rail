@@ -1,0 +1,9 @@
+const fs=require('fs'),path=require('path'),ts=require('typescript');const out=path.join(__dirname,'dist');fs.mkdirSync(out,{recursive:true});
+for(const name of ['model','RadarView','styles','RailApp']){let js=ts.transpileModule(fs.readFileSync(path.join(__dirname,'../src/webparts/railRadar',name+'.ts'),'utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2020,module:ts.ModuleKind.ES2020}}).outputText;js=js.replace(/from '(\.\/[^']+)'/g,"from '$1.js'");fs.writeFileSync(path.join(out,name+'.js'),js);}
+fs.writeFileSync(path.join(out,'index.html'),`<!doctype html><html lang="de"><meta charset="utf-8"><title>Technologieradar Rail Vorschau</title><style>body{margin:30px;background:#e8eef3}#app{max-width:1250px;margin:auto}</style><div id="app"></div><script type="module">
+import {RailApp} from './RailApp.js';import {blank} from './model.js';
+const data=['LiDAR','Ultraschall','Radarsensoren','5G / FRMCS','Satellitenkommunikation','KI Assistenz','Mustererkennung','RTK','BLE','UWB Tracking','Wearables','Psychoakustische Optimierung'].map((Name,i)=>({data:{...blank(),Id:'demo-'+i,Name,Category:i<3?'Detektion':i<5?'Kommunikation':i<7?'Künstliche Intelligenz':i<10?'Lokalisierung':i===10?'Interaktion':'Akustik',Stage:20-i,Target:Math.max(1,15-i),Reason:'Fiktive Bewertung zur Demonstration. Nutzen und Risiken werden im nächsten Schritt geprüft.',Description:'Beispieltechnologie für Anwendungen im Bahnbetrieb.',Project:'Rail Pilot '+(i+1),Owner:'Team Rail',Goal:'Eignung im Pilotbetrieb prüfen',ProfileUrl:'https://example.org/steckbrief'},itemId:i+1,etag:'"1"'}));
+const store={load:async()=>data,setup:async()=>{},save:async(t,previous)=>{if(previous){const i=data.findIndex(x=>x.itemId===previous.itemId);data[i]={data:t,itemId:previous.itemId,etag:'"2"'};}else data.push({data:t,itemId:data.length+1,etag:'"1"'});}};
+new RailApp(document.getElementById('app'),store,false,'Lokale Vorschau mit fiktiven Daten');
+</script></html>`);
+console.log('Preview built');
