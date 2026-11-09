@@ -1,7 +1,7 @@
 export interface Technology {
  Id: string; Name: string; Category: string; Description: string; Owner: string;
  Stage: number; Target: number | null; Reason: string; Goal: string; Due: string;
- Date: string; Archived: boolean; History: string[]; ProfileUrl: string; Project: string;
+ Date: string; Archived: boolean; History: string[]; ProfileUrl: string; Project: string; Highlighted: boolean;
 }
 export interface Entry { data: Technology; itemId: number; etag: string; }
 export interface Store {
@@ -15,25 +15,9 @@ export const ink = (s: number): string => s<=5?'#15836a':s<=10?'#9d7800':s<=15?'
 export const escape = (v: unknown): string => String((v === null || v === undefined) ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c] as string));
 export function validLink(s: string): boolean { if(!s) return true; try {const u=new URL(s);return (u.protocol==='https:'||u.protocol==='http:')&&!u.username&&!u.password;}catch{return false;} }
 export function radius(s: number, r: number): number {if(!Number.isInteger(s)||s<1||s>20)throw new Error('Ungültige Radarstufe');return r*(s-1)/19;}
-export function blank(): Technology {return {Id:crypto.randomUUID(),Name:'',Category:'',Description:'',Owner:'',Stage:20,Target:null,Reason:'',Goal:'',Due:'',Date:new Date().toLocaleDateString('sv-SE'),Archived:false,History:[],ProfileUrl:'',Project:''};}
+export function blank(): Technology {return {Id:crypto.randomUUID(),Name:'',Category:'',Description:'',Owner:'',Stage:20,Target:null,Reason:'',Goal:'',Due:'',Date:new Date().toLocaleDateString('sv-SE'),Archived:false,History:[],ProfileUrl:'',Project:'',Highlighted:false};}
 function dateOk(s: string): boolean {return /^\d{4}-\d{2}-\d{2}$/.test(s)&&!Number.isNaN(Date.parse(s))&&new Date(s).toISOString().slice(0,10)===s;}
-export function validate(raw: unknown): Technology {
- if(!raw||typeof raw!=='object')throw new Error('Ungültiger Technologieeintrag.');
- const t=raw as Technology;
- for(const k of ['Id','Name','Category','Reason','Date'] as const)if(typeof t[k]!=='string'||!t[k].trim())throw new Error('Pflichtfeld fehlt: '+k);
- if(!Number.isInteger(t.Stage)||t.Stage<0||t.Stage>20||t.Target!==null&&t.Target!==undefined&&(!Number.isInteger(t.Target)||t.Target<0||t.Target>20))throw new Error('Bewertungsstufen müssen ganzzahlig zwischen 0 und 20 liegen.');
- const result: Technology={...t};
- for(const k of ['Description','Owner','Goal','Due','ProfileUrl','Project'] as const){if(t[k]!==null&&t[k]!==undefined&&typeof t[k]!=='string')throw new Error('Ungültiges Textfeld: '+k);result[k]=t[k]||'';}
- result.Target=(t.Target===null||t.Target===undefined)?null:t.Target;result.Archived=t.Archived===true;
- if(t.Archived!==null&&t.Archived!==undefined&&typeof t.Archived!=='boolean')throw new Error('Ungültiger Archivstatus.');
- result.History=t.History||[];if(!Array.isArray(result.History)||result.History.some(h=>typeof h!=='string'))throw new Error('Ungültiger Verlauf.');
- if(result.Target!==null&&!result.Goal.trim())throw new Error('Ein Ziel benötigt eine Zielbeschreibung.');
- if(!dateOk(result.Date)||(result.Due&&!dateOk(result.Due)))throw new Error('Ungültiges Datum.');
- if(!validLink(result.ProfileUrl))throw new Error('Steckbrief-Link muss eine HTTP- oder HTTPS-Adresse ohne Zugangsdaten sein.');
- if(result.Name.length>255||result.Category.length>255||result.Id.length>255)throw new Error('Name, Kategorie und ID dürfen höchstens 255 Zeichen enthalten.');
- if(JSON.stringify(result).length>60000)throw new Error('Der Eintrag einschließlich Verlauf ist zu groß (maximal 60.000 Zeichen).');
- return result;
-}
+export function validate(raw: unknown): Technology { if(!raw||typeof raw!=='object')throw new Error('Ungültiger Technologieeintrag.'); const t=raw as Technology; for(const k of ['Id','Name','Category','Reason','Date'] as const)if(typeof t[k]!=='string'||!t[k].trim())throw new Error('Pflichtfeld fehlt: '+k); if(!Number.isInteger(t.Stage)||t.Stage<0||t.Stage>20||t.Target!==null&&t.Target!==undefined&&(!Number.isInteger(t.Target)||t.Target<0||t.Target>20))throw new Error('Bewertungsstufen müssen ganzzahlig zwischen 0 und 20 liegen.'); const result: Technology={...t}; for(const k of ['Description','Owner','Goal','Due','ProfileUrl','Project'] as const){if(t[k]!==null&&t[k]!==undefined&&typeof t[k]!=='string')throw new Error('Ungültiges Textfeld: '+k);result[k]=t[k]||'';} result.Target=(t.Target===null||t.Target===undefined)?null:t.Target;result.Archived=t.Archived===true; if(t.Archived!==null&&t.Archived!==undefined&&typeof t.Archived!=='boolean')throw new Error('Ungültiger Archivstatus.'); result.Highlighted=t.Highlighted===true;if(t.Highlighted!==null&&t.Highlighted!==undefined&&typeof t.Highlighted!=='boolean')throw new Error('Ungültiger Highlight-Status.'); result.History=t.History||[];if(!Array.isArray(result.History)||result.History.some(h=>typeof h!=='string'))throw new Error('Ungültiger Verlauf.'); if(result.Target!==null&&!result.Goal.trim())throw new Error('Ein Ziel benötigt eine Zielbeschreibung.'); if(!dateOk(result.Date)||(result.Due&&!dateOk(result.Due)))throw new Error('Ungültiges Datum.'); if(!validLink(result.ProfileUrl))throw new Error('Steckbrief-Link muss eine HTTP- oder HTTPS-Adresse ohne Zugangsdaten sein.'); if(result.Name.length>255||result.Category.length>255||result.Id.length>255)throw new Error('Name, Kategorie und ID dürfen höchstens 255 Zeichen enthalten.'); if(JSON.stringify(result).length>60000)throw new Error('Der Eintrag einschließlich Verlauf ist zu groß (maximal 60.000 Zeichen).'); return result; }
 export function parseBackup(raw: string): Technology[] {const list:unknown=JSON.parse(raw);if(!Array.isArray(list)||list.length>1000)throw new Error('Eine Sicherung muss eine Liste mit höchstens 1.000 Technologien enthalten.');const ids=new Set<string>();return list.map(x=>{const t=validate(x);if(ids.has(t.Id))throw new Error('Doppelte Technologie-ID in der Sicherung.');ids.add(t.Id);return t;});}
 export function tooltip(t: Technology,target: boolean): string {const v=(s:string):string=>s||'Nicht angegeben';return t.Name+(target?' — Ziel\n\nProjekt: '+v(t.Project)+'\nVerantwortlich: '+v(t.Owner):' — Iststand\n\nBegründung: '+v(t.Reason))+'\n\nBeschreibung: '+v(t.Description);}
 

@@ -35,14 +35,71 @@ export class RailApp {
  private download(blob:Blob,name:string):void{const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),10000);}
  private async exportPng():Promise<void>{const svg=radarSvg(this.filtered(),this.cluster,this.uid+'-export');const url=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml'}));try{const img=new Image();await new Promise<void>((resolve,reject)=>{img.onload=()=>resolve();img.onerror=()=>reject(new Error('Bildexport fehlgeschlagen.'));img.src=url;});const canvas=document.createElement('canvas');canvas.width=1800;canvas.height=1400;const g=canvas.getContext('2d');if(!g)throw new Error('Bildexport nicht verfügbar.');g.fillStyle='white';g.fillRect(0,0,1800,1400);g.drawImage(img,0,40,1800,1350);g.fillStyle='#142b41';g.font='24px Segoe UI';g.fillText('Technologieradar Rail · '+new Date().toLocaleDateString('de-DE'),28,30);const blob=await new Promise<Blob|null>(resolve=>canvas.toBlob(resolve,'image/png'));if(!blob)throw new Error('Bildexport fehlgeschlagen.');this.download(blob,'Technologieradar-Rail.png');}finally{URL.revokeObjectURL(url);}}
  private async importFile():Promise<void>{const input=this.el<HTMLInputElement>('[data-file]');const file=input.files?.[0];input.value='';if(!file)return;let imported=0;try{if(file.size>10*1024*1024)throw new Error('Die Sicherung darf höchstens 10 MB groß sein.');const data=parseBackup(await file.text());const ids=new Set(this.entries.map(x=>x.data.Id));const fresh=data.filter(t=>!ids.has(t.Id));if(!fresh.length){this.status('Alle IDs sind bereits vorhanden; nichts importiert.');return;}if(!window.confirm(`${fresh.length} neue Technologien importieren? ${data.length-fresh.length} vorhandene IDs werden übersprungen. Es wird nichts überschrieben.`))return;this.busy(true);for(const t of fresh){await this.store.save(t);imported++;}await this.reload();this.status(`${imported} Technologien importiert.`);}catch(err){await this.reload();this.status(`${imported} Einträge wurden importiert. Der Import wurde angehalten: ${String(err instanceof Error?err.message:err)} Bereits importierte Einträge bleiben erhalten; ein erneuter Import überspringt ihre IDs.`,true);}finally{this.busy(false);}}
- private edit(id?:string):void{const previous=this.entries.find(x=>x.data.Id===id);if(id&&!previous)return;const t=previous?{...previous.data,History:[...previous.data.History]}:blank();const dialog=this.el<HTMLDialogElement>('dialog');this.el('.tooltip').hidden=true;
-  const field=(key:keyof Technology,label:string,multi=false,required=false):string=>`<label class="field ${multi?'wide':''}">${label}<${multi?'textarea':'input'} name="${key}" ${required?'required':''} ${multi?'':`value="${e(t[key])}"`} ${['Name','Category'].indexOf(key)>=0?'maxlength="255"':''}>${multi?e(t[key])+'</textarea>':''}</label>`;
-  const options=(selected:number|null,optional=false):string=>(optional?`<option value="" ${selected===null?'selected':''}>Kein Ziel festgelegt</option>`:'')+names.map((n,v)=>`<option value="${v}" ${selected===v?'selected':''}>${group(v)} · ${n}</option>`).reverse().join('');
-  dialog.innerHTML=`<div class="dialoghead"><h3>${id?'Technologie':'Neue Technologie'}</h3><button type="button" data-close aria-label="Schließen">×</button></div><form><fieldset ${this.readonlyMode?'disabled':''} style="border:0;margin:0;padding:0"><div class="fields">${field('Name','Technologie *',false,true)}${field('Category','Kategorie *',false,true)}${field('Description','Beschreibung',true)}${field('Project','Projekt')}${field('Owner','Verantwortlich')}${field('ProfileUrl','Steckbrief-Link')}<div class="field">Steckbrief${t.ProfileUrl&&validLink(t.ProfileUrl)?`<a href="${e(t.ProfileUrl)}" target="_blank" rel="noopener noreferrer">Technologiesteckbrief öffnen</a>`:'<span class="hint">Nach dem Speichern hier öffnen.</span>'}</div><label class="field">Aktueller Stand *<select name="Stage">${options(t.Stage)}</select></label><label class="field">Bewertungsdatum *<input type="date" name="Date" value="${e(t.Date)}" required></label><p class="hint wide" data-definition>${definitions[t.Stage]}</p>${field('Reason','Begründung *',true,true)}<label class="field">Zielstufe<select name="Target">${options(t.Target,true)}</select></label><label class="field">Zieltermin<input type="date" name="Due" value="${e(t.Due)}"></label>${field('Goal','Zielbeschreibung',true)}<label class="wide"><input type="checkbox" name="Archived" ${t.Archived?'checked':''}> Archiviert</label></div></fieldset><details style="margin-top:18px"><summary>Verlauf (${t.History.length})</summary><div class="history">${e(t.History.slice().reverse().join('\n\n'))||'Noch keine Änderungen.'}</div></details><div class="formerror" role="alert"></div><div class="actions"><button type="button" data-close>Schließen</button>${this.readonlyMode?'':'<button class="primary" type="submit">Speichern</button>'}</div></form>`;
-  dialog.querySelectorAll<HTMLButtonElement>('[data-close]').forEach(b=>{b.onclick=()=>dialog.close();});
-  const form=dialog.querySelector('form') as HTMLFormElement;const select=form.elements.namedItem('Stage') as HTMLSelectElement;select.onchange=()=>{(dialog.querySelector('[data-definition]') as HTMLElement).textContent=definitions[Number(select.value)];};
-  form.onsubmit=ev=>{ev.preventDefault();void this.saveForm(form,t,previous,dialog);};dialog.showModal();(form.elements.namedItem('Name') as HTMLInputElement).focus();
+ private edit(id?:string):void{
+  const previous=this.entries.find(x=>x.data.Id===id);
+  if(id&&!previous)return;
+  const t=previous?{...previous.data,History:[...previous.data.History]}:blank();
+  const dialog=this.el<HTMLDialogElement>('dialog');
+  this.el('.tooltip').hidden=true; 
+  
+  const field=(key:keyof Technology,label:string,multi=false,required=false):string=>`<label class="field ${multi?'wide':''}">${label}<${multi?'textarea':'input'} name="${key}" ${required?'required':''} ${multi?'':`value="${e(t[key])}"`} ${['Name','Category'].indexOf(key)>=0?'maxlength="255"':''}>${multi?e(t[key])+'</textarea>':''}</label>`; 
+  
+  const options=(selected:number|null,optional=false):string=>(optional?`<option value="" ${selected===null?'selected':''}>Kein Ziel festgelegt</option>`:'')+names.map((n,v)=>`<option value="${v}" ${selected===v?'selected':''}>${group(v)} · ${n}</option>`).reverse().join(''); 
+  
+  dialog.innerHTML=`<div class="dialoghead"><h3>${id?'Technologie':'Neue Technologie'}</h3><button type="button" data-close aria-label="Schließen">×</button></div><form><fieldset ${this.readonlyMode?'disabled':''} style="border:0;margin:0;padding:0"><div class="fields">
+    ${field('Name','Technologie *',false,true)}
+    ${field('Category','Kategorie *',false,true)}
+    ${field('Description','Beschreibung',true)}
+    ${field('Project','Projekt')}
+    ${field('Owner','Verantwortlich')}
+    ${field('ProfileUrl','Steckbrief-Link')}
+    <div class="field">Steckbrief${t.ProfileUrl&&validLink(t.ProfileUrl)?`<a href="${e(t.ProfileUrl)}" target="_blank" rel="noopener noreferrer">Technologiesteckbrief öffnen</a>`:'<span class="hint">Nach dem Speichern hier öffnen.</span>'}</div>
+    <label class="field">Aktueller Stand *<select name="Stage">${options(t.Stage)}</select></label>
+    <label class="field">Bewertungsdatum *<input type="date" name="Date" value="${e(t.Date)}" required></label>
+    <p class="hint wide" data-definition>${definitions[t.Stage]}</p>
+    ${field('Reason','Begründung *',true,true)}
+    <label class="field">Zielstufe<select name="Target">${options(t.Target,true)}</select></label>
+    <label class="field">Zieltermin<input type="date" name="Due" value="${e(t.Due)}"></label>
+    ${field('Goal','Zielbeschreibung',true)}
+    <label class="wide"><input type="checkbox" name="Archived" ${t.Archived?'checked':''}> Archiviert</label>
+    <label class="wide"><input type="checkbox" name="Highlighted" ${t.Highlighted?'checked':''}> Im Radar hervorheben (Highlight)</label>
+  </div></fieldset><details style="margin-top:18px"><summary>Verlauf (${t.History.length})</summary><div class="history">${e(t.History.slice().reverse().join('\n\n'))||'Noch keine Änderungen.'}</div></details><div class="formerror" role="alert"></div><div class="actions"><button type="button" data-close>Schließen</button>${this.readonlyMode?'':'<button class="primary" type="submit">Speichern</button>'}</div></form>`; 
+  
+  dialog.querySelectorAll<HTMLButtonElement>('[data-close]').forEach(b=>{b.onclick=()=>dialog.close();}); 
+  const form=dialog.querySelector('form') as HTMLFormElement;
+  const select=form.elements.namedItem('Stage') as HTMLSelectElement;
+  select.onchange=()=>{(dialog.querySelector('[data-definition]') as HTMLElement).textContent=definitions[Number(select.value)];}; 
+  
+  form.onsubmit=ev=>{ev.preventDefault();void this.saveForm(form,t,previous,dialog);};
+  dialog.showModal();
+  (form.elements.namedItem('Name') as HTMLInputElement).focus(); 
  }
- private async saveForm(form:HTMLFormElement,old:Technology,previous:Entry|undefined,dialog:HTMLDialogElement):Promise<void>{if(this.readonlyMode)return;const button=form.querySelector<HTMLButtonElement>('button[type=submit]') as HTMLButtonElement;const error=form.querySelector('.formerror') as HTMLElement;error.textContent='';try{const values=new FormData(form);const t={...old};for(const key of ['Name','Category','Description','Project','Owner','ProfileUrl','Reason','Goal','Date','Due'] as const)t[key]=String(values.get(key)||'').trim();t.Stage=Number(values.get('Stage'));t.Target=values.get('Target')===''?null:Number(values.get('Target'));t.Archived=values.get('Archived')==='on';validate(t);t.History=[...old.History,new Date().toLocaleString('de-DE')+' | '+t.Name+' | '+names[t.Stage]+'\nBegründung: '+t.Reason+'\nBeschreibung: '+t.Description+'\nZiel: '+(t.Target===null?'—':names[t.Target])+' · '+t.Goal+' · '+t.Due+'\nProjekt: '+t.Project+' | Verantwortlich: '+t.Owner+'\nSteckbrief: '+t.ProfileUrl+'\nKategorie: '+t.Category+' | Archiviert: '+t.Archived];validate(t);button.disabled=true;await this.store.save(t,previous);dialog.close();await this.reload();}catch(err){error.textContent=String(err instanceof Error?err.message:err);}finally{button.disabled=false;}}
+private async saveForm(form:HTMLFormElement,old:Technology,previous:Entry|undefined,dialog:HTMLDialogElement):Promise<void>{
+  if(this.readonlyMode)return;
+  const button=form.querySelector<HTMLButtonElement>('button[type=submit]') as HTMLButtonElement;
+  const error=form.querySelector('.formerror') as HTMLElement;
+  error.textContent='';
+  try{
+    const values=new FormData(form);
+    const t={...old};
+    for(const key of ['Name','Category','Description','Project','Owner','ProfileUrl','Reason','Goal','Date','Due'] as const)
+      t[key]=String(values.get(key)||'').trim();
+    t.Stage=Number(values.get('Stage'));
+    t.Target=values.get('Target')===''?null:Number(values.get('Target'));
+    t.Archived=values.get('Archived')==='on';
+    t.Highlighted=values.get('Highlighted')==='on'; // <-- Hier neu hinzugefügt
+    
+    validate(t);
+    t.History=[...old.History,new Date().toLocaleString('de-DE')+' | '+t.Name+' | '+names[t.Stage]+'\nBegründung: '+t.Reason+'\nBeschreibung: '+t.Description+'\nZiel: '+(t.Target===null?'—':names[t.Target])+' · '+t.Goal+' · '+t.Due+'\nProjekt: '+t.Project+' | Verantwortlich: '+t.Owner+'\nSteckbrief: '+t.ProfileUrl+'\nKategorie: '+t.Category+' | Archiviert: '+t.Archived];
+    validate(t);
+    button.disabled=true;
+    await this.store.save(t,previous);
+    dialog.close();
+    await this.reload();
+  }catch(err){
+    error.textContent=String(err instanceof Error?err.message:err);
+  }finally{
+    button.disabled=false;
+  }
 }
-
+}

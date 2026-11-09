@@ -1,0 +1,9 @@
+PASS 20 außen, 1 Zentrum, 0 ungültige Position
+PASS Alte Windows-Sicherungen und neue Felder
+PASS Validierung vor Import und Speichern
+PASS Leeres Ziel und Entfernen bleiben verschieden
+PASS SVG blendet 0 und Archiv aus und schützt Eingaben
+PASS Getrennte Mouseover-Inhalte
+PASS SharePoint REST Laden, ETag und Konfliktschutz
+PASS Einrichtung schützt fremde Listen
+PASS Fehlende Berechtigungen sind keine fehlende Liste
