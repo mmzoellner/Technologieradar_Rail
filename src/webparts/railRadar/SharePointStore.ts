@@ -31,7 +31,7 @@ export class SharePointStore implements Store {
   this.listId=meta.body.d.Id;this.entity=meta.body.d.ListItemEntityTypeFullName;
   const fields=await this.request(this.endpoint()+'/fields?$select=InternalName');const existing=(fields.body.d.results as {InternalName:string}[]).map(f=>f.InternalName);
   const specs=[{name:'TechKey',xml:'<Field Type="Text" DisplayName="Technologie ID" Name="TechKey" StaticName="TechKey" Required="TRUE" Indexed="TRUE" EnforceUniqueValues="TRUE" MaxLength="255" />'},{name:'RadarData',xml:'<Field Type="Note" DisplayName="Radardaten" Name="RadarData" StaticName="RadarData" RichText="FALSE" NumLines="6" />'}];
-  for(const field of specs)if(existing.indexOf(field.name)<0)await this.request(this.endpoint()+'/fields/createfieldasxml','POST',{parameters:{__metadata:{type:'SP.XmlSchemaFieldCreationInformation'},SchemaXml:field.xml,Options:0}});
+  for(const field of specs)if(existing.indexOf(field.name)<0)await this.request(this.endpoint()+'/fields/createfieldasxml','POST',{parameters:{__metadata:{type:'SP.XmlSchemaFieldCreationInformation'},SchemaXml:field.xml,Options:8}});
   await this.connect();
  }
  public async load():Promise<Entry[]>{await this.connect();let next=this.endpoint()+"/items?$select=Id,Title,TechKey,RadarData&$orderby=Id&$top=500";const result:Entry[]=[];
