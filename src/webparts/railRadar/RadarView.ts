@@ -61,7 +61,7 @@ export function radarSvg(items:Technology[],cluster:boolean,prefix:string):strin
     s+=`<path d="M ${cx} ${cy} L ${endx} ${endy}" stroke="#bdc9d3" stroke-width=".8"/>`;
     
     const [x,y]=point(a,radius(t.Stage,r)); 
-    const marker=(target:boolean,body:string):string=>`<g tabindex="0" role="button" data-marker="${e(t.Id)}" data-target="${target}" aria-label="${e(tooltip(t,target))}" style="cursor:pointer">${body}<title>${e(tooltip(t,target))}</title></g>`; 
+    const marker=(target:boolean,body:string):string=>`<g tabindex="0" role="button" data-marker="${e(t.Id)}" data-target="${target}" aria-label="${e(tooltip(t,target))}" style="cursor:pointer">${body}</g>`;
     
     if(t.Target!==null&&t.Target>0){
       const [tx,ty]=point(a,radius(t.Target,r));
